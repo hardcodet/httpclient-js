@@ -1,8 +1,8 @@
 # API Client
 
-This is a simple HTTP client that provides simple, pluggable auth,
-result unwrapping and basic retry logic for node projects with generics support
-for Typescript projects.
+This is an opinionated HTTP client that provides simple acces to REST-based APIs. It sits on
+top of `axios` and provides result unwrapping (with generics support for Typescript),
+pluggable authentication strategies and basic retry logic.
 
 ## Installation
 
@@ -29,38 +29,45 @@ Syntax is quite straightforward:
 1. Issue an HTTP call
 2. Process the `ApiResponse` (for `get`, `post`, ...) or `ApiResult`
    (for `getAs`, `postAs`, ...) and handle the result. The `ApiResult` class provides
-   a `value` property that can be used to get the parsed JSON response. 
+   a `value` property that can be used to get and unwrap the parsed JSON response.
 
 ```
-const httpClient = new HttpClient("https://www.foo.com/api");
+public async doWork(): Promise<SomeDto> {
 
-const uri = "/v1/bar");
-const payload = { ... };
-
-const result: ApiResult<SomeDto> = await httpClient.postAs<SomeDto>(uri, payload);
-if (!result.success) {
-    if(result.notFound) {
-        // we got a 404
-    } else {
-        // some other error
-    }
-} else {
-    const value: SomeDto = result.value;
+    const httpClient = new HttpClient("https://www.foo.com/api");
+    
+    const uri = "/v1/bar");
+    const payload = { ... };
+    
+    // send a POST with the specified body
+    const response: ApiResult<SomeDto> = await httpClient.postAs<SomeDto>(uri, payload);
+    
+    // unwrap the returned data (throws exception if the request fails)
+    const result: SomeDto = response.getValueOrThrow();
+    return result;
 }
 ```
         
-        
-Alternatively, just use the `getValueOrThrow` method to unwrap a result, or throw
-an exception if the call wasn't successful:
-        
+<br>
+Alternatively, you can inspect the response object, e.g.
+
 ```
-// this would throw an exception if the result wasn't successful
-const result: ApiResult<SomeDto> = await httpClient.postAs<SomeDto>(uri, payload);
-const value: SomeDto = result.getValueOrThrow();
+if (!response.success) {
+    if(response.notFound) {
+        // we got a 404
+        return undefined;
+    } else {
+        // some other error - throw
+        throw new Error(resonse.createError());
+    }
+} else {
+    const result: SomeDto = response.value;
+    return result;
+}
 ```   
     
 If you don't expect a result, you can use `ensureSuccess`, which will
-also throw an error in case you won't get an `HTTP 2xx`:
+throw an error in case you won't get an `HTTP 2xx`:
 
 ```
 const response: ApiResponse = await httpClient.post("some/endpoint");
@@ -69,7 +76,7 @@ response.ensureSuccess();
 
 ## Authentication
 
-The client provides strategy-based authentication through the `IAuthClient` interface that
+`HttpClient` provides strategy-based authentication through the `IAuthClient` interface that
 can be simply injected into a `HttpClient` instance:
 
 ```
@@ -78,10 +85,51 @@ const httpClient = new HttpClient("https://www.foo.com/api", {authClient: basicA
 const result = await httpClient.get("protected/endpoint");
 ```
 
+Every time an invoked endpoint returns an `HTTP 401`, the client will try to resolve
+a token through an injected auth strategy (if one is available).
+
+
+There's currently 3 built-in implementations:
+
+- `Basic` auth (user name / password)
+- OAuth client credentials grant
+- A delegate-based strategy that allows you to inject some custom token fetch logic.
+  The resolved token will then be submitted as a `Bearer` token with subsequent requests.
+
+
+### Delegation based auth
+
+Here's a short sample with delegation. We simply use a second `HttpClient` without
+authentication to fetch the token of the main `httpClient`:
+
+```
+constructor() {
+    const authClient = new DelegateBearerAuthClient(() => this.getAccessToken());
+    this.httpClient = new HttpClient("https://api.foo.com", { authClient });
+}
+
+
+/**
+ * Invoked by the delegation authentication strategy of the HTTP client in order to
+ * get a new access token when needed.
+ */
+private async getAccessToken(): Promise<string> {
+    // use an independent HTTP client - the default one would block because it's
+    // waiting on this method to resolve a token
+    const tokenClient = new HttpClient("https://www.auth-provider.com");
+
+    const uri = "v1/login?userId=foo&&password=bar";
+    const result = await tokenClient.postAs<string>(uri);
+    return result.getValueOrThrow();
+}
+```
+
+
+### Custom authentication strategies
+
 `IAuthClient` basically just provides a contract to perform a token fetch/refresh, and to
 construct an authorization header value that is being added to the request header when submitting
-a request. There's multiple implementations for this out of the box (basic auth, OAuth client
-credentials grant and a delegate-based one), or you can build your own.
+a request. You can easily build your own.
 
 ```
 export interface IAuthClient {
@@ -102,7 +150,9 @@ export interface IAuthClient {
 ## Retries
 
 The package comes with a simple retry mechanism. By default, i will perform up to 2 retries
-(3 attempts in total) before giving up.
+(3 attempts in total) before giving up in case the invoked endpoint returns a `5xx` error.
+
+For `3xx` (redirects) or `4xx` errors, it will fail immediately without retries.) 
 
 ### Retry delays
 
@@ -117,7 +167,7 @@ Delays between retries can follow 3 possible patterns:
 const options: HttpClientOptions = {
     maxAttempts: 5,
     retryDelay: 5000,
-    retryStrategy: RetryStrategy.Linear,
+    retryStrategy: RetryStrategy.Constant,
 };
 const httpClient = new HttpClient("https://www.foo.com/api", options);
 ```
