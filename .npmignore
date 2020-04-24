@@ -3,4 +3,3 @@ tsconfig.json
 tslint.json
 .prettierrc
 .prettierignore
-rollup.config.js
