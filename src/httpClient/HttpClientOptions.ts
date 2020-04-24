@@ -1,5 +1,5 @@
-import {RetryStrategy} from "./RetryStrategy";
-import {IAuthClient} from "./authentication";
+import { RetryStrategy } from "./RetryStrategy";
+import { IAuthClient } from "./authentication";
 
 /**
  * Options for the HTTP client.
@@ -31,5 +31,5 @@ export interface HttpClientOptions {
     /**
      * Optional custom headers to be included in every call.
      */
-    customHeaders?: any
+    customHeaders?: any;
 }

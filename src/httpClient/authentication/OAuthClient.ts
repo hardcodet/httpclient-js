@@ -2,7 +2,6 @@ import { ApiResponse } from "../ApiResponse";
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { IAuthClient } from "./IAuthClient";
 
-
 /**
  * Client to perform an OAuth client credentials grant.
  */
@@ -36,7 +35,6 @@ export class OAuthClient implements IAuthClient {
     private token: Promise<string> = undefined;
     client: AxiosInstance;
 
-
     constructor(private options: OAuthClientOptions) {
         const headers = {
             "Content-type": "application/x-www-form-urlencoded",
@@ -54,9 +52,7 @@ export class OAuthClient implements IAuthClient {
         this.client = axios.create(config);
     }
 
-
     public async getAuthHeader(): Promise<object> {
-
         if (!this.token) {
             await this.refreshToken();
         }
@@ -73,16 +69,13 @@ export class OAuthClient implements IAuthClient {
         }
     }
 
-
     public async refreshToken(): Promise<void> {
         const promise = this.refreshTokenImpl();
         this.token = promise;
         await promise;
     }
 
-
     public async refreshTokenImpl(): Promise<string> {
-
         const response: ApiResponse = await this.getToken();
         if (response.success) {
             // parse the returned payload
@@ -92,13 +85,14 @@ export class OAuthClient implements IAuthClient {
                 return token;
             }
 
-            throw new Error("Token fetch error - no 'access_token' found in resolved JSON: " + JSON.stringify(json),
+            throw new Error(
+                "Token fetch error - no 'access_token' found in resolved JSON: " +
+                    JSON.stringify(json)
             );
         } else {
             throw new Error("Token fetch error: " + response.getErrorMessage());
         }
     }
-
 
     /**
      * Sends an HTTP POST to get a new token.

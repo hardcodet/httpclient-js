@@ -1,9 +1,8 @@
 {
   "name": "@hardcodet/httpclient",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "HTTP client library for easy consumption of RESTful APIs. Comes with built-in authentication strategies and retry mechanism.",
   "main": "dist/index.js",
-  "module": "dist/index.es.js",
   "files": [
     "dist"
   ],

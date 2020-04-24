@@ -10,5 +10,5 @@ export enum RetryStrategy {
     /**
      * Exponential increase: baseDelay * (retries ** 2), e.g. r x 1, r x 4, r x 9, r x 16 seconds. Default option.
      */
-    Exponential = "exponential"
+    Exponential = "exponential",
 }

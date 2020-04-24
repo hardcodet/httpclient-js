@@ -2,7 +2,6 @@
  * Performs token-based authentication with a 3rd party provider.
  */
 export interface IAuthClient {
-
     /**
      * Asynchronously refreshes the token. This sets the
      * token promise of the client.
@@ -16,4 +15,3 @@ export interface IAuthClient {
      */
     getAuthHeader(): Promise<object>;
 }
-

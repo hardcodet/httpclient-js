@@ -1,16 +1,13 @@
 import { AxiosResponse } from "axios";
 
-
 /**
  * Encapsulates an HTTP response object along with some meta data
  * and helper methods.
  */
 export class ApiResponse {
-
     public response: AxiosResponse;
     public error: any;
     public attempts: number;
-
 
     /**
      * Gets the status code. Returns -1 in case we didn't
@@ -19,7 +16,6 @@ export class ApiResponse {
     get status(): number {
         return this.response ? this.response.status : -1;
     }
-
 
     /**
      * Checks whether the request was handled successfully (HTTP 2xx).
@@ -30,7 +26,6 @@ export class ApiResponse {
         return s > 199 && s < 300 && this.error === undefined;
     }
 
-
     /**
      * Checks whether the status code (if we have one) indicates
      * the request was bad. Returns false for HTTP 401.
@@ -40,14 +35,12 @@ export class ApiResponse {
         return s > 399 && s < 500 && s !== 401;
     }
 
-
     /**
      * True if the response is an HTTP 403.
      */
     get forbidden(): boolean {
         return this.response && this.response.status === 403;
     }
-
 
     /**
      * True if the response is an HTTP 404.
@@ -56,13 +49,11 @@ export class ApiResponse {
         return this.response && this.response.status === 404;
     }
 
-
     constructor(res: AxiosResponse, error: any, attempts: number) {
         this.response = res;
         this.error = error;
         this.attempts = attempts;
     }
-
 
     /**
      * Constructs an error message from the response (if available) or
@@ -88,7 +79,6 @@ export class ApiResponse {
         return `${statusText} (${this.status})${data}`;
     }
 
-
     /**
      * Validates the response was successful. If not,
      * throws an exception.
@@ -100,7 +90,6 @@ export class ApiResponse {
 
         throw this.createError();
     }
-
 
     /**
      * Convenience method to create (not yet throw!) an error if success has been manually validated.

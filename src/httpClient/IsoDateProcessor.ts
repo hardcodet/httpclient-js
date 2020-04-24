@@ -1,5 +1,5 @@
 import { parseISO } from "date-fns";
-import {IJsonProcessor} from "./IJsonProcessor";
+import { IJsonProcessor } from "./IJsonProcessor";
 
 /**
  * Parses ISO dates, which are just strings in JSON.
@@ -25,7 +25,7 @@ export class IsoDateProcessor implements IJsonProcessor {
             return;
         }
 
-        Object.keys(json).forEach(key => {
+        Object.keys(json).forEach((key) => {
             const value: any = json[key];
 
             // browse arrays
