@@ -1,9 +1,9 @@
-import {ApiResponse} from "./ApiResponse";
-import {ApiResult} from "./ApiResult";
-import {IJsonProcessor} from "./IJsonProcessor";
-import axios, {AxiosInstance, AxiosResponse} from "axios";
-import {HttpClientOptions} from "./HttpClientOptions";
-import {RetryStrategy} from "./RetryStrategy";
+import { ApiResponse } from "./ApiResponse";
+import { ApiResult } from "./ApiResult";
+import { IJsonProcessor } from "./IJsonProcessor";
+import axios, { AxiosInstance, AxiosResponse } from "axios";
+import { HttpClientOptions } from "./HttpClientOptions";
+import { RetryStrategy } from "./RetryStrategy";
 
 /**
  * HTTP / API client.
@@ -28,7 +28,7 @@ export class HttpClient {
         };
 
         // merge with default options
-        this.options = {...defaultOptions, ...options};
+        this.options = { ...defaultOptions, ...options };
 
         this.baseUri = baseUri;
         this.customHeaders = this.options.customHeaders;
@@ -112,7 +112,7 @@ export class HttpClient {
 
             if (this.options.authClient) {
                 const authHeader = await this.options.authClient.getAuthHeader();
-                headers = {...headers, ...authHeader};
+                headers = { ...headers, ...authHeader };
             }
 
             if (data) {
