@@ -204,7 +204,7 @@ const httpClient = new HttpClient("https://www.foo.com/api", options);
 
 ## Transformation and Validation
 
-(Note: if you just global transformations of date strings to `Date`, read below
+(Note: if you just need global transformations of date strings to `Date`, read below
 on Json Processors and `IsoDateProcessor` specifically.)
 
 Consider this DTO:
@@ -214,7 +214,7 @@ class User {
     firstName: string;
     lastName: string;
     email: string;
-    dateCreated: Date;
+    dateOfBirth: Date;
 
     getFullName(): string {
         return firstName + " " + lastName;
@@ -224,7 +224,7 @@ class User {
 
 Note that if you fetch the JSON that matches this DTO from an API, the
 returned object is *not* an instance of `User` but a plain Javascript object.
-Accordingly, you don't have a `getFullName` method, and `dateCreated` is actually
+Accordingly, you don't have a `getFullName` method, and `dateOfBirth` is actually
 a string, not a `Date`. The snippet below would fail:
 
 ```
@@ -252,14 +252,14 @@ const fullName: string = user.getFullName();
 #### Type conversions
 
 There is still one gotcha: The javascript runtime still has no idea that the
-`dateCreated` field should be a Date, since JSON declares dates as regular
+`dateOfBirth` field should be a Date, since JSON declares dates as regular
 strings. In order to transform that string into a `Date` instance,
-you will have to decorate your `UserDto.dateCreated` field with the
+you will have to decorate your `UserDto.dateOfBirth` field with the
 `@Type(() => Date)` decorator:
 
 ```
 @Type(() => Date)
-dateCreated: Date;
+dateOfBirth: Date;
 ```
 
 You will also need the `Type` decorator for nested types.
@@ -283,7 +283,7 @@ For more information on validation, see https://github.com/typestack/class-valid
 
 #### Simpler version: JSON Processors
 
-A simpler version to decorating every DTO you have is injecting a global JSON
+A simpler alternative to decorating every DTO you have is injecting a global JSON
 processor. If we review our `User` DTO above, the `getFullName` method may be
 an anti-pattern anyway: The DTO should only capture state. This leaves us with
 a pretty prototypical use case: We just want all date strings to be parsed into
