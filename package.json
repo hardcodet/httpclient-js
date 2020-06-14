@@ -1,6 +1,6 @@
 {
   "name": "@hardcodet/httpclient",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "HTTP client library for easy consumption of RESTful APIs. Comes with built-in authentication strategies, validation and retry mechanism.",
   "main": "dist/index.js",
   "files": [
@@ -19,12 +19,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hardcodet/httpclient.git"
+    "url": "git+https://github.com/hardcodet/httpclient-js.git"
   },
   "bugs": {
-    "url": "https://github.com/hardcodet/httpclient/issues"
+    "url": "https://github.com/hardcodet/httpclient-js/issues"
   },
-  "homepage": "https://github.com/hardcodet/httpclient#readme",
+  "homepage": "https://github.com/hardcodet/httpclient-js#readme",
   "devDependencies": {
     "@types/node": "^13.13.2",
     "prettier": "^2.0.5",
