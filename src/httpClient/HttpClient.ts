@@ -1,9 +1,21 @@
-import { ApiResponse } from "./ApiResponse";
-import { ApiResult } from "./ApiResult";
-import { IJsonProcessor } from "./IJsonProcessor";
-import axios, { AxiosInstance, AxiosResponse } from "axios";
-import { HttpClientOptions } from "./HttpClientOptions";
-import { RetryStrategy } from "./RetryStrategy";
+import {ApiResponse} from "./ApiResponse";
+import {ApiResult} from "./ApiResult";
+import {IJsonProcessor} from "./jsonProcessing/IJsonProcessor";
+import axios, {AxiosInstance, AxiosResponse} from "axios";
+import {HttpClientOptions} from "./HttpClientOptions";
+import {RetryStrategy} from "./RetryStrategy";
+import {plainToClass} from "class-transformer";
+import {validateOrReject} from "class-validator";
+
+
+/**
+ * Target transformation type - used to declare the type to be
+ * fed into class-tranformator for JSON-to-class transformation, if specified.
+ */
+export declare type TransformType<T> = {
+    new(...args: any[]): T;
+};
+
 
 /**
  * HTTP / API client.
@@ -28,14 +40,14 @@ export class HttpClient {
         };
 
         // merge with default options
-        this.options = { ...defaultOptions, ...options };
+        this.options = {...defaultOptions, ...options};
 
         this.baseUri = baseUri;
         this.customHeaders = this.options.customHeaders;
-        this.setInstance();
+        this._setInstance();
     }
 
-    private setInstance() {
+    private _setInstance() {
         const headers = this.customHeaders;
 
         const config = {
@@ -52,43 +64,43 @@ export class HttpClient {
 
     setCustomHeaders(headers: any) {
         this.customHeaders = headers;
-        this.setInstance();
+        this._setInstance();
     }
 
     get(uri, headers?): Promise<ApiResponse> {
         return this._invoke("GET", uri, null, headers);
     }
 
-    async getAs<T>(uri: string, headers?): Promise<ApiResult<T>> {
+    async getAs<T>(uri: string, transformType?: TransformType<T>, headers?): Promise<ApiResult<T>> {
         const response = await this.get(uri, headers);
-        return this.parseResultInternal<T>(response);
+        return this._parseResultInternal<T>(response, transformType);
     }
 
     post(uri, data?, headers?): Promise<ApiResponse> {
         return this._invoke("POST", uri, data, headers);
     }
 
-    async postAs<T>(uri: string, data?, headers?): Promise<ApiResult<T>> {
+    async postAs<T>(uri: string, data?, transformType?: TransformType<T>, headers?): Promise<ApiResult<T>> {
         const response = await this.post(uri, data, headers);
-        return this.parseResultInternal<T>(response);
+        return this._parseResultInternal<T>(response, transformType);
     }
 
     put(uri, data?, headers?): Promise<ApiResponse> {
         return this._invoke("PUT", uri, data, headers);
     }
 
-    async putAs<T>(uri: string, data?, headers?): Promise<ApiResult<T>> {
+    async putAs<T>(uri: string, data?, transformType?: TransformType<T>, headers?): Promise<ApiResult<T>> {
         const response = await this.put(uri, data, headers);
-        return this.parseResultInternal<T>(response);
+        return this._parseResultInternal<T>(response, transformType);
     }
 
     delete(uri, data?, headers?): Promise<ApiResponse> {
         return this._invoke("DELETE", uri, data, headers);
     }
 
-    async deleteAs<T>(uri: string, data?, headers?): Promise<ApiResult<T>> {
+    async deleteAs<T>(uri: string, data?, transformType?: TransformType<T>, headers?): Promise<ApiResult<T>> {
         const response = await this.delete(uri, data, headers);
-        return this.parseResultInternal<T>(response);
+        return this._parseResultInternal<T>(response, transformType);
     }
 
     _invoke(
@@ -112,7 +124,7 @@ export class HttpClient {
 
             if (this.options.authClient) {
                 const authHeader = await this.options.authClient.getAuthHeader();
-                headers = { ...headers, ...authHeader };
+                headers = {...headers, ...authHeader};
             }
 
             if (data) {
@@ -157,7 +169,7 @@ export class HttpClient {
                 await this.options.authClient.refreshToken();
             } else {
                 // otherwise delay, then recurse to try again
-                const delay = this.calculateRetryDelay(attemptCounter);
+                const delay = this._calculateRetryDelay(attemptCounter);
                 await new Promise((r) => setTimeout(r, delay));
             }
             return await this._invokeWithRetries(
@@ -173,7 +185,7 @@ export class HttpClient {
         }
     }
 
-    private calculateRetryDelay(attempts: number) {
+    private _calculateRetryDelay(attempts: number) {
         const baseDelay = this.options.retryDelay;
 
         switch (this.options.retryStrategy) {
@@ -186,15 +198,14 @@ export class HttpClient {
         }
     }
 
-    private async parseResultInternal<T>(
-        response: ApiResponse
-    ): Promise<ApiResult<T>> {
-        return HttpClient.parseResult<T>(response, this.inboundProcessors);
+    private async _parseResultInternal<T>(response: ApiResponse, transformType?: TransformType<T>): Promise<ApiResult<T>> {
+        return HttpClient.parseResult<T>(response, this.inboundProcessors, transformType);
     }
 
     static async parseResult<T>(
         response: ApiResponse,
-        inboundProcessors?: IJsonProcessor[]
+        inboundProcessors?: IJsonProcessor[],
+        transformType?: TransformType<T>
     ): Promise<ApiResult<T>> {
         try {
             if (!response.success) {
@@ -208,18 +219,24 @@ export class HttpClient {
             }
 
             // retrieve JSON data
-            let json: any = await response.response.data;
+            let data: any = await response.response.data;
 
             // process/transform JSON
             if (inboundProcessors) {
-                inboundProcessors.forEach((p) => (json = p.processJson(json)));
+                inboundProcessors.forEach((p) => (data = p.processJson(data)));
             }
 
-            // parse JSON and assign result
-            const obj: T = json as T;
+            // if a transform type was specified, send the JSON through class transformer
+            if (transformType) {
+                // transform
+                data = plainToClass(transformType, data);
+
+                // validate
+                await validateOrReject(data);
+            }
 
             return new ApiResult<T>(
-                obj,
+                data as T,
                 response.response,
                 undefined,
                 response.attempts

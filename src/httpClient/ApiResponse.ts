@@ -21,7 +21,7 @@ export class ApiResponse {
      * Checks whether the request was handled successfully (HTTP 2xx).
      */
     get success(): boolean {
-        // check for 2xx response plus no errors (could happen during JSON access/parsing)
+        // check for 2xx response plus no errors (could happen during JSON access/parsing or transformation/validation)
         const s = this.status;
         return s > 199 && s < 300 && this.error === undefined;
     }

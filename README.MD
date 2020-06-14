@@ -1,8 +1,20 @@
-# API Client
+# Typescript / Javascript API Client
 
-This is an opinionated HTTP client that provides simple acces to REST-based APIs. It sits on
-top of `axios` and provides result unwrapping (with generics support for Typescript),
-pluggable authentication strategies and basic retry logic.
+This is an opinionated HTTP client that provides simple access to REST-based APIs. It sits on
+top of `axios` (https://github.com/axios/axios) and provides result unwrapping
+(with generics support for Typescript), pluggable authentication strategies
+and basic retry logic.<br/>
+Also supports on-the-fly class transformations (JSON to real classes) and validation
+based on `class-transformer` and `class-validator`.
+
+```
+public async getUser(): Promise<User> {
+    const httpClient = new HttpClient("https://www.foo.com/api");
+    const result: ApiResult<User> = await httpClient.getAs<User>("users/123");
+    return result.getValueOrThrow();
+}
+```
+
 
 ## Installation
 
@@ -19,6 +31,23 @@ Using Yarn:
 
 ```
 yarn add @hardcodet/httpclient
+```
+
+#### Optional: Class transformations / validation setup
+
+If you are using the built-in class transformations based on `class-transformer`,
+you will also need `reflect-metadata`:
+
+```
+npm i reflect-metadata
+-- or --
+yarn add reflect-metadata
+```
+
+Then import it in a global place (typically your app initialization):
+
+```
+import "reflect-metadata";
 ```
 
 
@@ -149,7 +178,7 @@ export interface IAuthClient {
 
 ## Retries
 
-The package comes with a simple retry mechanism. By default, i will perform up to 2 retries
+The package comes with a simple retry mechanism. By default, it will perform up to 2 retries
 (3 attempts in total) before giving up in case the invoked endpoint returns a `5xx` error.
 
 For `3xx` (redirects) or `4xx` errors, it will fail immediately without retries.) 
@@ -171,6 +200,127 @@ const options: HttpClientOptions = {
 };
 const httpClient = new HttpClient("https://www.foo.com/api", options);
 ```
+
+
+## Transformation and Validation
+
+(Note: if you just global transformations of date strings to `Date`, read below
+on Json Processors and `IsoDateProcessor` specifically.)
+
+Consider this DTO:
+
+```
+class User {
+    firstName: string;
+    lastName: string;
+    email: string;
+    dateCreated: Date;
+
+    getFullName(): string {
+        return firstName + " " + lastName;
+    }
+}
+```
+
+Note that if you fetch the JSON that matches this DTO from an API, the
+returned object is *not* an instance of `User` but a plain Javascript object.
+Accordingly, you don't have a `getFullName` method, and `dateCreated` is actually
+a string, not a `Date`. The snippet below would fail:
+
+```
+// get user
+const result: ApiResult<User> = await httpClient.getAs<User>("users/123");  
+const user: User = result.value;
+
+// will fail - there is no such method on the returned object!
+const fullName: string = user.getFullName();
+```
+
+
+In order to get around this, you can use the transformation feature of the
+library. Note the additional `User` type parameter in the `getAs` method:
+
+```
+// get user
+const result: ApiResult<User> = await httpClient.getAs("users/123", User);  
+const user: User = result.value;
+
+// works!
+const fullName: string = user.getFullName();
+```
+
+#### Type conversions
+
+There is still one gotcha: The javascript runtime still has no idea that the
+`dateCreated` field should be a Date, since JSON declares dates as regular
+strings. In order to transform that string into a `Date` instance,
+you will have to decorate your `UserDto.dateCreated` field with the
+`@Type(() => Date)` decorator:
+
+```
+@Type(() => Date)
+dateCreated: Date;
+```
+
+You will also need the `Type` decorator for nested types.
+All transformation comes from the `class-transformer` package. For more information,
+see https://github.com/typestack/class-transformer.
+
+
+#### Validation
+
+Transformed types can also be validated based on validation decorators from
+the `class-validator` package. For example, in order to make sure the returned
+user data contains a valid email address, decorate it like this:
+
+```
+@IsEmail()
+email: string;
+```
+
+For more information on validation, see https://github.com/typestack/class-validator. 
+
+
+#### Simpler version: JSON Processors
+
+A simpler version to decorating every DTO you have is injecting a global JSON
+processor. If we review our `User` DTO above, the `getFullName` method may be
+an anti-pattern anyway: The DTO should only capture state. This leaves us with
+a pretty prototypical use case: We just want all date strings to be parsed into
+actual `Date` objects:
+
+```
+interface User {
+    firstName: string;
+    lastName: string;
+    email: string;
+    dateOfBirth: Date;  // NEEDS TO BE TRANSFORMED
+}
+```
+
+An alternative here is to use a JSON processor which transforms incoming or
+outgoing JSON. And because date transformations are so common, there's the
+built-in `IsoDateProcessor` that we can use right away:
+
+```
+const c = new HttpClient(options);
+c.inboundProcessors.push(new IsoDateProcessor())
+```
+
+The injected `IsoDateProcessor` will process retrieved JSON objects
+and transform any string that matches an ISO8601 date for us:
+
+```
+// get user
+const result: ApiResult<User> = await httpClient.getAs("users/123", User);  
+const user: User = result.value;
+
+// works, since dateOfBirth is a Date object now
+const year: string = user.dateOfBirth.getFullYear();
+```
+
+For more flexibility, just check the `IJsonProcessor` interface and the built-in
+`StringTransformJsonProcessor` class.
 
 
 ## Options
