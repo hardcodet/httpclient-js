@@ -287,7 +287,7 @@ A simpler alternative to decorating every DTO you have is injecting a global JSO
 processor. If we review our `User` DTO above, the `getFullName` method may be
 an anti-pattern anyway: The DTO should only capture state. This leaves us with
 a pretty prototypical use case: We just want all date strings to be parsed into
-actual `Date` objects:
+actual `Date` objects.
 
 ```
 interface User {
@@ -308,11 +308,11 @@ c.inboundProcessors.push(new IsoDateProcessor())
 ```
 
 The injected `IsoDateProcessor` will process retrieved JSON objects
-and transform any string that matches an ISO8601 date for us:
+and transform any string that matches an ISO8601 date for us.
 
 ```
 // get user
-const result: ApiResult<User> = await httpClient.getAs("users/123", User);  
+const result: ApiResult<User> = await httpClient.getAs<User>("users/123");  
 const user: User = result.value;
 
 // works, since dateOfBirth is a Date object now
