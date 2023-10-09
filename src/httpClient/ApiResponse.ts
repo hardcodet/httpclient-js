@@ -73,6 +73,7 @@ export class ApiResponse {
                 data = " - " + JSON.stringify(res.data);
             }
         } catch (e) {
+            // we can't parse the response - give up
             console.error(e);
         }
 

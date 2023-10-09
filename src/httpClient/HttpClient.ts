@@ -54,7 +54,7 @@ export class HttpClient {
             baseURL: this.baseUri,
             timeout: this.options.timeout,
             headers,
-            validateStatus: (status) => {
+            validateStatus: (status: number) => {
                 return status >= 200; // accept all responses
             },
         };
@@ -67,7 +67,7 @@ export class HttpClient {
         this._setInstance();
     }
 
-    get(uri, headers?): Promise<ApiResponse> {
+    get(uri: string, headers?): Promise<ApiResponse> {
         return this._invoke("GET", uri, null, headers);
     }
 
@@ -76,29 +76,38 @@ export class HttpClient {
         return this._parseResultInternal<T>(response, transformType);
     }
 
-    post(uri, data?, headers?): Promise<ApiResponse> {
+    post(uri: string, data?: any, headers?): Promise<ApiResponse> {
         return this._invoke("POST", uri, data, headers);
     }
 
-    async postAs<T>(uri: string, data?, transformType?: TransformType<T>, headers?): Promise<ApiResult<T>> {
+    async postAs<T>(uri: string, data?: any, transformType?: TransformType<T>, headers?): Promise<ApiResult<T>> {
         const response = await this.post(uri, data, headers);
         return this._parseResultInternal<T>(response, transformType);
     }
 
-    put(uri, data?, headers?): Promise<ApiResponse> {
+    put(uri: string, data?: any, headers?): Promise<ApiResponse> {
         return this._invoke("PUT", uri, data, headers);
     }
 
-    async putAs<T>(uri: string, data?, transformType?: TransformType<T>, headers?): Promise<ApiResult<T>> {
+    async putAs<T>(uri: string, data?: any, transformType?: TransformType<T>, headers?): Promise<ApiResult<T>> {
         const response = await this.put(uri, data, headers);
         return this._parseResultInternal<T>(response, transformType);
     }
 
-    delete(uri, data?, headers?): Promise<ApiResponse> {
+    patch(uri: string, data?: any, headers?): Promise<ApiResponse> {
+        return this._invoke("PATCH", uri, data, headers);
+    }
+
+    async patchAs<T>(uri: string, data?: any, transformType?: TransformType<T>, headers?): Promise<ApiResult<T>> {
+        const response = await this.patch(uri, data, headers);
+        return this._parseResultInternal<T>(response, transformType);
+    }
+
+    delete(uri: string, data?: any, headers?): Promise<ApiResponse> {
         return this._invoke("DELETE", uri, data, headers);
     }
 
-    async deleteAs<T>(uri: string, data?, transformType?: TransformType<T>, headers?): Promise<ApiResult<T>> {
+    async deleteAs<T>(uri: string, data?: any, transformType?: TransformType<T>, headers?): Promise<ApiResult<T>> {
         const response = await this.delete(uri, data, headers);
         return this._parseResultInternal<T>(response, transformType);
     }
